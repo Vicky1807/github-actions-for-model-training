@@ -17,6 +17,8 @@ jobs:
         creds: ${{secrets.AZURE_CREDENTIALS}}
     - name: Run Azure Machine Learning training job
       run: |
-         az ml job create -f src/job.yml --stream
+         az ml job create -f src/job.yml -g rg-ai300-l5f9b1fd3d5a04a58a1 -w mlw-ai300-l5f9b1fd3d5a04a58a1
+        
+
 
 
