@@ -1,7 +1,8 @@
 name: Manually trigger an Azure Machine Learning job
-
 on:
   workflow_dispatch:
+  pull_request:
+    types: [opened, synchronize, reopened]
 
 jobs:
   train:
@@ -9,16 +10,27 @@ jobs:
     steps:
     - name: Check out repo
       uses: actions/checkout@main
+    
     - name: Install az ml extension
       run: az extension add -n ml -y
+    
     - name: Azure login
       uses: azure/login@v2
       with:
         creds: ${{secrets.AZURE_CREDENTIALS}}
+    
     - name: Run Azure Machine Learning training job
       run: |
-         az ml job create -f src/job.yml -g rg-ai300-l5f9b1fd3d5a04a58a1 -w mlw-ai300-l5f9b1fd3d5a04a58a1
-        
-
-
-
+        az ml job create -f src/job.yml -g rg-ai300-l5f9b1fd3d5a04a58a1 -w mlw-ai300-l5f9b1fd3d5a04a58a1
+    
+    - name: Post job status comment on PR
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: '✅ Azure ML training job has been triggered successfully!'
+          })
