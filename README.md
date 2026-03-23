@@ -2,144 +2,169 @@
 
 ## Overview
 
-This repository includes an automated GitHub Actions workflow that triggers Azure Machine Learning (Azure ML) training jobs directly from pull requests. This enables seamless integration of model training into your CI/CD pipeline.
+I set up this workflow while learning about MLOps and CI/CD automation. The repo is forked from Microsoft's MLOps examples, and I've been exploring how to automatically trigger Azure ML training jobs through GitHub pull requests. It's been a great way to understand how model training can be integrated into a development workflow without manually kicking off jobs every time.
+
+Basically, whenever I create a pull request, the workflow kicks in automatically and spins up an Azure ML training job. No manual steps needed—it all just happens in the background.
 
 ## Workflow: Manually Trigger an Azure Machine Learning Job
 
 ### Workflow File
-- **Location**: `.github/workflows/manual-tigger-job.yml`
+- **Location**: `.github/workflows/` (check your repo for the exact filename)
 - **Trigger**: Manual pull request workflow
 
-### How It Works
+## How It Works
 
-The workflow executes the following steps in sequence:
+When you push a PR, the workflow runs through these steps:
 
-1. **Set up job** (1s)
-   - Initializes the GitHub Actions runner environment
+1. **Set up job** (1s) — Gets the runner ready
+2. **Check out repo** (0s) — Grabs the latest code
+3. **Install az ml extension** (26s) — Adds Azure ML CLI tools
+4. **Azure login** (8s) — Authenticates with Azure using stored credentials
+5. **Run Azure Machine Learning training job** (10s) — Submits the actual training job
+6. **Post Azure login** (0s) — Cleanup
+7. **Post Check out repo** (0s) — More cleanup
+8. **Complete job** (1s) — Done
 
-2. **Check out repo** (0s)
-   - Clones your repository code into the runner
+**Total time**: Around 45-50 seconds from PR to training job submitted.
 
-3. **Install az ml extension** (26s)
-   - Installs the Azure ML CLI extension for command-line operations
+Pretty cool to watch it all happen automatically instead of having to manually run commands.
 
-4. **Azure login** (8s)
-   - Authenticates with your Azure subscription using configured credentials
+## Triggering the Workflow
 
-5. **Run Azure Machine Learning training job** (10s)
-   - Executes the training job using Azure ML's job submission
+### Automatic (What I Usually Do)
+Just create a pull request and it runs automatically. Push changes, open the PR, and watch the magic happen in the Actions tab.
 
-6. **Post Azure login** (0s)
-   - Cleans up Azure authentication tokens
+### Manual (If You Need To)
+If you want to manually trigger it for some reason:
+1. Go to the **Actions** tab
+2. Pick the **"Manually trigger an Azure Machine Learning job"** workflow
+3. Hit **"Run workflow"**
+4. Select your branch and click **"Run workflow"**
 
-7. **Post Check out repo** (0s)
-   - Final cleanup step
+Pretty straightforward.
 
-8. **Complete job** (1s)
-   - Workflow execution completes
+## Checking On Your Training Job
 
-**Total Execution Time**: ~46-48 seconds
+1. **Actions tab** — Click it to see all workflow runs
+2. **Find your run** — Look for the PR or timestamp that matches what you just pushed
+3. **Click into it** — See each step and the logs
+4. **Green checkmark** = success, **Red X** = something broke
 
-### Triggering the Workflow
+You'll usually see the job submitted successfully in the logs, then you can jump over to Azure ML Studio to watch the actual training happen.
 
-1. Navigate to the **Actions** tab in your GitHub repository
-2. Select the **"Manually trigger an Azure Machine Learning job"** workflow
-3. Click **"Run workflow"**
-4. Choose your target branch (usually `main`)
-5. Click **"Run workflow"** to execute
+### Sample Workflow Log
+```
+✓ Set up job
+✓ Check out repo
+✓ Install az ml extension
+✓ Azure login
+✓ Run Azure Machine Learning training job
+✓ Post Azure login
+✓ Post Check out repo
+✓ Complete job
+```
 
-### Viewing Results
+## What You Need to Get This Running
 
-1. **Go to Actions Tab**: Click the **Actions** tab in your GitHub repository
-2. **Select the Workflow Run**: Find the run you want to inspect
-3. **Review the Logs**: Click on each step to view detailed execution logs
-4. **Check Status**: Look for the green checkmark (✓) indicating success or red (✗) for failures
+### On Azure's Side
+- Azure subscription with an active ML workspace
+- Some compute resources set up in Azure ML for training
+- A service principal for authentication (basically credentials that let GitHub talk to Azure)
 
-## Prerequisites
+### On GitHub
+You'll need to add some secrets to your repo settings. These let the workflow authenticate with Azure:
+- `AZURE_SUBSCRIPTION_ID` — Your subscription ID
+- `AZURE_CREDENTIALS` — Service principal credentials (as JSON)
+- `AZURE_ML_WORKSPACE` — Your workspace name
+- `AZURE_ML_RESOURCE_GROUP` — Your resource group name
 
-Before using this workflow, ensure you have:
-
-### Azure Setup
-- An Azure subscription with an active Azure ML workspace
-- Azure ML compute resources configured for training
-- Service Principal credentials for authentication
-
-### GitHub Setup
-- GitHub repository secrets configured:
-  - `AZURE_SUBSCRIPTION_ID`: Your Azure subscription ID
-  - `AZURE_CREDENTIALS`: Your Azure service principal credentials (JSON format)
-  - `AZURE_ML_WORKSPACE`: Your Azure ML workspace name
-  - `AZURE_ML_RESOURCE_GROUP`: Your Azure resource group name
-
-### Local Development
-- Azure CLI installed (`az cli`)
-- Azure ML CLI extension installed (`az ml`)
+### Locally (If You're Developing)
+- Azure CLI installed
+- The Azure ML extension for the CLI
 - Python 3.8+
 
-## Configuration
+## Setting Things Up
 
-### Setting Up Secrets
+### Adding Secrets to GitHub
 
-1. Go to your GitHub repository **Settings** → **Secrets and variables** → **Actions**
+1. Go to your repo **Settings** → **Secrets and variables** → **Actions**
 2. Click **"New repository secret"**
-3. Add each required secret:
+3. Add each one:
    - `AZURE_SUBSCRIPTION_ID`
    - `AZURE_CREDENTIALS`
    - `AZURE_ML_WORKSPACE`
    - `AZURE_ML_RESOURCE_GROUP`
 
-### Workflow File Structure
+That's the annoying part, but once it's done you're golden.
 
-The workflow file (typically named `azure-ml-training.yml`) contains:
+### The Workflow File
 
-```yaml
-name: Manually trigger an Azure Machine Learning job
-on:
-  pull_request:
-    types: [opened, synchronize]
-  workflow_dispatch:
+The actual workflow (check `.github/workflows/`) is pretty simple. It basically:
+1. Installs the Azure ML CLI
+2. Logs into Azure using your secrets
+3. Submits a training job using a YAML config file
+4. Done
 
-jobs:
-  train:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: Install az ml extension
-        run: |
-          az extension add -n ml -y
-      - name: Azure login
-        uses: azure/login@v1
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
-      - name: Run Azure Machine Learning training job
-        run: |
-          az ml job create --file <your-job-config>.yml
+## A Real Example
+
+Here's basically what happens when I make changes:
+
+```bash
+# 1. Make changes to the code (model, training script, whatever)
+git checkout -b feature/model-improvements
+
+# 2. Commit and push
+git add .
+git commit -m "Improve model architecture"
+git push origin feature/model-improvements
+
+# 3. Open a PR on GitHub
+# Instantly, the workflow kicks off automatically
 ```
 
-### Monitoring Job Progress
+Then I just sit back and watch:
+- **GitHub Actions** shows me the workflow steps
+- Once it completes, **Azure ML** shows me the training job running
+- I can check metrics, see how the model's doing, all that good stuff
 
-1. **In GitHub Actions**:
-   - View real-time logs for each step
-   - Check if the training job submitted successfully
-
-2. **In Azure ML Studio**:
-   - Navigate to your Azure ML workspace
-   - Go to **Jobs** section
-   - Find the job triggered by the workflow
-   - Monitor training metrics and outputs
+No manual job submission, no running commands from my terminal. It's all automated.
 
 ## Troubleshooting
 
-### Issues Faced
+### When Things Break
 
-| Issue | Solution |
-|-------|----------|
-| **Authentication failed** | Verify `AZURE_CREDENTIALS` secret is correctly formatted JSON |
-| **az ml extension not found** | Check Azure CLI version compatibility; may need to update |
-| **Job creation failed** | Verify job config file path and Azure ML workspace permissions |
-| **Timeout during training** | Increase timeout limits in workflow or check compute resource availability |
+| What Went Wrong | How I Usually Fix It |
+|---|---|
+| Azure login failed | Check the `AZURE_CREDENTIALS` secret—make sure it's valid JSON |
+| Can't find az ml command | Might need to update Azure CLI; the extension wasn't installed |
+| Job won't submit | Double-check the job config file path and that you have permissions in the workspace |
+| Everything times out | Might not have enough compute resources available, or the job config is way too big |
+
+### Finding Errors
+
+1. Click the failed run in the **Actions** tab
+2. Expand the step that failed (usually the "Run Azure Machine Learning training job" step)
+3. Read the error message—it usually tells you what's wrong
+4. Google it or check Azure ML docs if it's confusing
+
+## Lessons I've Learned
+
+1. **Test locally first** — Before relying on the workflow, make sure your job config actually works
+2. **Watch your costs** — Azure ML compute isn't free. I monitor job runs to avoid surprises
+3. **Give jobs meaningful names** — Makes it way easier to find them later in the job history
+4. **Don't forget to clean up** — Old job runs pile up. Delete them to keep costs down and the workspace clean
+5. **Keep scripts in version control** — Makes it easy to track what changed between runs
+6. **Set reasonable timeouts** — Otherwise a broken job might run for hours and burn money
+
+## Resources
+
+- [Azure ML CLI Docs](https://learn.microsoft.com/en-us/azure/machine-learning/reference-azure-machine-learning-cli)
+- [GitHub Actions Docs](https://docs.github.com/en/actions)
+- [Azure ML Training Jobs](https://learn.microsoft.com/en-us/azure/machine-learning/how-to-train-model)
+
+**Original repo**: This is forked from [Microsoft's MLOps GitHub repository](https://github.com/microsoft/MLOps-Demo) — great resource for learning how to structure ML projects.
 
 ---
 
-**Last Updated**: March 2026  
-**Status**: Successfully tested and operational
+**Status**: Working and learning!  
+**Last update**: March 2026
