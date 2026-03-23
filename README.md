@@ -9,7 +9,7 @@ Basically, whenever I create a pull request, the workflow kicks in automatically
 ## Workflow: Manually Trigger an Azure Machine Learning Job
 
 ### Workflow File
-- **Location**: `.github/workflows/` (check your repo for the exact filename)
+- **Location**: `.github/workflows/manual-trigger-job.yml`
 - **Trigger**: Manual pull request workflow
 
 ## How It Works
@@ -52,17 +52,6 @@ Pretty straightforward.
 
 You'll usually see the job submitted successfully in the logs, then you can jump over to Azure ML Studio to watch the actual training happen.
 
-### Sample Workflow Log
-```
-✓ Set up job
-✓ Check out repo
-✓ Install az ml extension
-✓ Azure login
-✓ Run Azure Machine Learning training job
-✓ Post Azure login
-✓ Post Check out repo
-✓ Complete job
-```
 
 ## What You Need to Get This Running
 
@@ -78,10 +67,6 @@ You'll need to add some secrets to your repo settings. These let the workflow au
 - `AZURE_ML_WORKSPACE` — Your workspace name
 - `AZURE_ML_RESOURCE_GROUP` — Your resource group name
 
-### Locally (If You're Developing)
-- Azure CLI installed
-- The Azure ML extension for the CLI
-- Python 3.8+
 
 ## Setting Things Up
 
@@ -94,8 +79,6 @@ You'll need to add some secrets to your repo settings. These let the workflow au
    - `AZURE_CREDENTIALS`
    - `AZURE_ML_WORKSPACE`
    - `AZURE_ML_RESOURCE_GROUP`
-
-That's the annoying part, but once it's done you're golden.
 
 ### The Workflow File
 
